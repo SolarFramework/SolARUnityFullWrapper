@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
+using SolAR.Core;
 using UnityEngine;
 
 #pragma warning disable IDE1006 // Styles d'affectation de noms
@@ -13,6 +14,12 @@ namespace SolAR
         protected FrameworkReturnCode ok;
 
         protected readonly IList<IDisposable> subscriptions = new List<IDisposable>();
+
+        protected virtual void OnDisable()
+        {
+            foreach (var d in subscriptions) d.Dispose();
+            subscriptions.Clear();
+        }
 
         [HideInInspector]
         public Configuration conf;
