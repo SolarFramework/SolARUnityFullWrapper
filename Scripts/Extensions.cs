@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using SolAR.Datastructure;
 using UnityEngine;
 using UnityEngine.Assertions;
 using XPCF;
@@ -11,6 +12,101 @@ namespace SolAR
 {
     public static class Extensions
     {
+        public static void ToUnity(this Image image, ref Texture2D texture)
+        {
+            var w = (int)image.getWidth();
+            var h = (int)image.getHeight();
+            Assert.AreEqual(3, image.getNbChannels());
+            Assert.AreEqual(8, image.getNbBitsPerComponent());
+            Assert.AreEqual(Image.DataType.TYPE_8U, image.getDataType());
+            Assert.AreEqual(Image.ImageLayout.LAYOUT_BGR, image.getImageLayout());
+            Assert.AreEqual(Image.PixelOrder.INTERLEAVED, image.getPixelOrder());
+            if (texture != null && (texture.width != w || texture.height != h))
+            {
+                UnityEngine.Object.Destroy(texture);
+                texture = null;
+            }
+            if (texture == null)
+            {
+                texture = new Texture2D(w, h, TextureFormat.RGB24, false);
+            }
+            texture.LoadRawTextureData(image.data(), (int)image.getBufferSize());
+            texture.Apply();
+        }
+
+        public static Image ToSolAR(this Texture2D texture)
+        {
+            var data = texture.GetRawTextureData();
+            var handler = GCHandle.Alloc(data, GCHandleType.Pinned);
+            var ptr = handler.AddrOfPinnedObject();
+
+            uint w = (uint)texture.width;
+            uint h = (uint)texture.height;
+            Image.ImageLayout pixLayout;
+            switch (texture.format)
+            {
+                case TextureFormat.Alpha8:
+                case TextureFormat.R16:
+                case TextureFormat.R8:
+                case TextureFormat.RFloat:
+                case TextureFormat.RHalf:
+                    pixLayout = Image.ImageLayout.LAYOUT_GREY;
+                    break;
+                case TextureFormat.ARGB32:
+                case TextureFormat.BGRA32:
+                case TextureFormat.RGBA32:
+                case TextureFormat.RGBAFloat:
+                case TextureFormat.RGBAHalf:
+                    pixLayout = Image.ImageLayout.LAYOUT_RGBA;
+                    break;
+                case TextureFormat.RG16:
+                case TextureFormat.RGFloat:
+                case TextureFormat.RGHalf:
+                    pixLayout = Image.ImageLayout.LAYOUT_UNDEFINED;
+                    break;
+                case TextureFormat.RGB24:
+                    pixLayout = Image.ImageLayout.LAYOUT_RGB;
+                    break;
+                default:
+                    Debug.LogWarning(new { texture.format });
+                    pixLayout = Image.ImageLayout.LAYOUT_UNDEFINED;
+                    break;
+            }
+            Image.DataType type;
+            switch (texture.format)
+            {
+                case TextureFormat.R16:
+                case TextureFormat.RG16:
+                    type = Image.DataType.TYPE_16U;
+                    break;
+                case TextureFormat.RFloat:
+                case TextureFormat.RGBAFloat:
+                case TextureFormat.RGFloat:
+                    type = Image.DataType.TYPE_32U;
+                    break;
+                case TextureFormat.Alpha8:
+                case TextureFormat.ARGB32:
+                case TextureFormat.BGRA32:
+                case TextureFormat.R8:
+                case TextureFormat.RGB24:
+                case TextureFormat.RGBA32:
+                    type = Image.DataType.TYPE_8U;
+                    break;
+                case TextureFormat.RGBAHalf:
+                case TextureFormat.RGHalf:
+                case TextureFormat.RHalf:
+                    type = Image.DataType.TYPE_16U;
+                    break;
+                default:
+                    Debug.LogWarning(new { texture.format });
+                    type = Image.DataType.TYPE_8U;
+                    break;
+            }
+            var image = new Image(ptr, w, h, pixLayout, Image.PixelOrder.INTERLEAVED, type);
+            handler.Free();
+            return image;
+        }
+
         public static bool CanRead(this IProperty.AccessSpecifier specifier) { return specifier != IProperty.AccessSpecifier.IProperty_OUT; }
         public static bool CanWrite(this IProperty.AccessSpecifier specifier) { return specifier != IProperty.AccessSpecifier.IProperty_IN; }
 
@@ -110,24 +206,24 @@ namespace SolAR
                 case IProperty.PropertyType.IProperty_CHARSTR:
                 case IProperty.PropertyType.IProperty_UNICODESTR:
                     return GUILayout.TextField((string)value);
-                    /*
-                case IProperty.PropertyType.IProperty_DOUBLE:
-                    GUILayout.TextField(value.ToString());
-                    return value;
-                case IProperty.PropertyType.IProperty_FLOAT:
-                    GUILayout.TextField(value.ToString());
-                    return value;
-                case IProperty.PropertyType.IProperty_INTEGER:
-                    return default(int);
-                case IProperty.PropertyType.IProperty_LONG:
-                    return default(long);
-                case IProperty.PropertyType.IProperty_STRUCTURE:
-                    return default(IPropertyMap);
-                case IProperty.PropertyType.IProperty_UINTEGER:
-                    return default(uint);
-                case IProperty.PropertyType.IProperty_ULONG:
-                    return default(ulong);
-                    */
+                /*
+            case IProperty.PropertyType.IProperty_DOUBLE:
+                GUILayout.TextField(value.ToString());
+                return value;
+            case IProperty.PropertyType.IProperty_FLOAT:
+                GUILayout.TextField(value.ToString());
+                return value;
+            case IProperty.PropertyType.IProperty_INTEGER:
+                return default(int);
+            case IProperty.PropertyType.IProperty_LONG:
+                return default(long);
+            case IProperty.PropertyType.IProperty_STRUCTURE:
+                return default(IPropertyMap);
+            case IProperty.PropertyType.IProperty_UINTEGER:
+                return default(uint);
+            case IProperty.PropertyType.IProperty_ULONG:
+                return default(ulong);
+                */
                 default:
                     GUILayout.TextField(value.ToString());
                     return value;
@@ -192,7 +288,7 @@ namespace SolAR
 
         public static T bindTo<T>(this IComponentIntrospect component) where T : class
         {
-            return (T) component.bindTo(typeof(T).Name);
+            return (T)component.bindTo(typeof(T).Name);
         }
 
         public static object bindTo(this IComponentIntrospect component, string name)
