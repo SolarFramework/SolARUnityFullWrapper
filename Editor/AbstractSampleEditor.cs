@@ -229,10 +229,10 @@ namespace SolAR
             switch (type.stringValue.ToLowerInvariant())
             {
                 default:
-                //EditorGUILayout.LabelField(content, type.stringValue);
-                //break;
+                    EditorGUILayout.HelpBox(type.stringValue, MessageType.Error);
+                    value.stringValue = EditorGUILayout.TextField(content, value.stringValue);
+                    break;
                 case "string":
-                    if (type.stringValue.ToLowerInvariant() != "string") Debug.LogError(type.stringValue);
                     value.stringValue = EditorGUILayout.TextField(content, value.stringValue);
                     break;
                 case "double":

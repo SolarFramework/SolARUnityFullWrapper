@@ -2,13 +2,14 @@
 using System.Linq;
 using SolAR;
 using UnityEngine;
-using XPCF;
+using XPCF.Api;
+using XPCF.Core;
 
 public partial class RuntimeEditor : MonoBehaviour
 {
-    static readonly UUID configurableUUID = UUID.Create("98DBA14F-6EF9-462E-A387-34756B4CBA80");
+    static UUID configurableUUID;
 
-    public IComponentManager xpcfManager { get { return xpcf.getComponentManagerInstance(); } }
+    public IComponentManager xpcfManager { get { return xpcf_api.getComponentManagerInstance(); } }
 
     readonly IList<IComponentIntrospect> xpcfComponents = new List<IComponentIntrospect>();
     GUIContent[] guiComponents;
@@ -27,13 +28,18 @@ public partial class RuntimeEditor : MonoBehaviour
         guiComponents = xpcfComponents.Select(c => new GUIContent(c.GetType().Name)).ToArray();
     }
 
+    protected void Awake()
+    {
+        configurableUUID = configurableUUID ?? new UUID("98DBA14F-6EF9-462E-A387-34756B4CBA80");
+    }
+
     protected void OnGUI()
     {
         using (new GUILayout.HorizontalScope())
         {
             if (guiComponents != null)
             {
-                using (GUITools.ChangeCheckScope)
+                using (GUITools.changeCheckScope)
                 {
                     idComponent = GUILayout.SelectionGrid(idComponent, guiComponents, 1, GUILayout.Width(300));
                     if (GUI.changed)
@@ -97,8 +103,8 @@ public partial class RuntimeEditor : MonoBehaviour
                         using (new GUILayout.HorizontalScope())
                         {
                             GUILayout.Label(p.getName(), GUILayout.Width(300));
-                            var size = p.size();
-                            using (GUITools.ChangeCheckScope)
+                            //var size = p.size();
+                            using (GUITools.changeCheckScope)
                             {
                                 value = type.OnGUI(value);
                                 if (access.CanWrite() && GUI.changed)

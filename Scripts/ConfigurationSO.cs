@@ -42,7 +42,7 @@ namespace SolAR
         public void Load()
         {
             var serializer = new XmlSerializer(typeof(ConfXml));
-            using (var stream = File.OpenRead(path))
+            using (var stream = File.Open(path, FileMode.Open))
             {
                 conf = (ConfXml)serializer.Deserialize(stream);
             }
@@ -52,7 +52,7 @@ namespace SolAR
         public void Save()
         {
             var serializer = new XmlSerializer(typeof(ConfXml));
-            using (var stream = File.OpenRead(path))
+            using (var stream = File.Open(path, FileMode.Create))
             {
                 serializer.Serialize(stream, conf);
             }
