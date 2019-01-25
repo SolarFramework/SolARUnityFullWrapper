@@ -39,7 +39,7 @@ public partial class RuntimeEditor : MonoBehaviour
         {
             if (guiComponents != null)
             {
-                using (GUITools.changeCheckScope)
+                using (Scope.ChangeCheck)
                 {
                     idComponent = GUILayout.SelectionGrid(idComponent, guiComponents, 1, GUILayout.Width(300));
                     if (GUI.changed)
@@ -104,7 +104,7 @@ public partial class RuntimeEditor : MonoBehaviour
                         {
                             GUILayout.Label(p.getName(), GUILayout.Width(300));
                             //var size = p.size();
-                            using (GUITools.changeCheckScope)
+                            using (Scope.ChangeCheck)
                             {
                                 value = type.OnGUI(value);
                                 if (access.CanWrite() && GUI.changed)

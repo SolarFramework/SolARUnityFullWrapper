@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Globalization;
+using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEditor.AnimatedValues;
@@ -246,11 +247,11 @@ namespace SolAR
                             using (var scope = new EditorGUI.ChangeCheckScope())
                             {
                                 double f;
-                                double.TryParse(v.stringValue, out f);
+                                double.TryParse(v.stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out f);
                                 f = EditorGUILayout.DelayedDoubleField(content, f);
                                 if (scope.changed)
                                 {
-                                    v.stringValue = f.ToString();
+                                    v.stringValue = f.ToString(CultureInfo.InvariantCulture);
                                 }
                             }
                         }
@@ -265,11 +266,11 @@ namespace SolAR
                             using (var scope = new EditorGUI.ChangeCheckScope())
                             {
                                 float f;
-                                float.TryParse(value.stringValue, out f);
+                                float.TryParse(value.stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out f);
                                 f = EditorGUILayout.FloatField(content, f);
                                 if (scope.changed)
                                 {
-                                    value.stringValue = f.ToString();
+                                    value.stringValue = f.ToString(CultureInfo.InvariantCulture);
                                 }
                             }
                             break;
@@ -280,7 +281,7 @@ namespace SolAR
                                 for (int i = 0; i < 2; ++i)
                                 {
                                     float f;
-                                    float.TryParse(values.GetArrayElementAtIndex(i).stringValue, out f);
+                                    float.TryParse(values.GetArrayElementAtIndex(i).stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out f);
                                     v[i] = f;
                                 }
                                 v = EditorGUILayout.Vector2Field(content, v);
@@ -288,7 +289,7 @@ namespace SolAR
                                 {
                                     for (int i = 0; i < 2; ++i)
                                     {
-                                        values.GetArrayElementAtIndex(i).stringValue = v[i].ToString();
+                                        values.GetArrayElementAtIndex(i).stringValue = v[i].ToString(CultureInfo.InvariantCulture);
                                     }
                                 }
                             }
@@ -300,7 +301,7 @@ namespace SolAR
                                 for (int i = 0; i < 3; ++i)
                                 {
                                     float f;
-                                    float.TryParse(values.GetArrayElementAtIndex(i).stringValue, out f);
+                                    float.TryParse(values.GetArrayElementAtIndex(i).stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out f);
                                     v[i] = f;
                                 }
                                 v = EditorGUILayout.Vector3Field(content, v);
@@ -308,13 +309,12 @@ namespace SolAR
                                 {
                                     for (int i = 0; i < 3; ++i)
                                     {
-                                        values.GetArrayElementAtIndex(i).stringValue = v[i].ToString();
+                                        values.GetArrayElementAtIndex(i).stringValue = v[i].ToString(CultureInfo.InvariantCulture);
                                     }
                                 }
                             }
                             break;
                         default:
-                            Debug.LogError(values.arraySize);
                             var enumerable = Enumerable
                                 .Range(0, values.arraySize)
                                 .Select(values.GetArrayElementAtIndex)
@@ -324,11 +324,11 @@ namespace SolAR
                                 using (var scope = new EditorGUI.ChangeCheckScope())
                                 {
                                     float f;
-                                    float.TryParse(v.stringValue, out f);
+                                    float.TryParse(v.stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out f);
                                     f = EditorGUILayout.FloatField(content, f);
                                     if (scope.changed)
                                     {
-                                        v.stringValue = f.ToString();
+                                        v.stringValue = f.ToString(CultureInfo.InvariantCulture);
                                     }
                                 }
                             }

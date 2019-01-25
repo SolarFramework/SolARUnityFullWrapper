@@ -24,7 +24,11 @@ namespace SolAR
 
             var shader = Shader.Find("SolAR/ImageEffectShader");
             Assert.IsNotNull(shader);
-            material = new Material(shader);
+            material = new Material(shader)
+            {
+                mainTextureOffset = new Vector2(0, 1),
+                mainTextureScale = new Vector2(1, -1),
+            };
 
             layoutId = Shader.PropertyToID("_Layout");
             propertyId = Shader.PropertyToID(property);

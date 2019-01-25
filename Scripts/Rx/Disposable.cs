@@ -8,9 +8,9 @@ namespace UniRx
 {
     public static class Disposable
     {
-        [Obsolete]
+        public static readonly IDisposable Empty = Create(() => { });
+
         public static IDisposable Create(Action action) { return new DisposableAction(action); }
-        [Obsolete]
         class DisposableAction : IDisposable
         {
             readonly Action action;

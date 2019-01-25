@@ -94,6 +94,7 @@ namespace SolAR
                         Double,
                     }
                     [XmlAttribute]
+                    [DefaultValue("")]
                     public string value;
 
                     [XmlElement("value")]

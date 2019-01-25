@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml;
@@ -31,36 +32,19 @@ namespace SolAR
             }
         }
 
-        [ContextMenu("Print")]
-        void Print()
-        {
-            var namespaces = new XmlSerializerNamespaces(new[] { new XmlQualifiedName() });
-            var serializer = new XmlSerializer(typeof(ConfXml));
-            using (var writer = new StringWriter())
-            {
-                /*
-                var settings = new XmlWriterSettings
-                {
-                    Indent = true,
-                    Encoding = System.Text.Encoding.UTF8,
-                };
-                using (var xmlWriter = XmlWriter.Create(writer, settings))
-                */
-                {
-                    serializer.Serialize(writer, conf.conf, namespaces);
-                }
-                Debug.Log(writer.ToString());
-            }
-        }
-
         [ContextMenu("Save")]
         void Save()
         {
-            var namespaces = new XmlSerializerNamespaces(new[] { new XmlQualifiedName() });
-            var serializer = new XmlSerializer(typeof(ConfXml));
-            using (var stream = File.Open(conf.path, FileMode.Create))
+            using (var stringWriter = new StringWriter(CultureInfo.InvariantCulture))
             {
-                serializer.Serialize(stream, conf.conf, namespaces);
+                var settings = new XmlWriterSettings { Indent = true, OmitXmlDeclaration = true, }; //TODO: check Unicode BOM
+                using (var xmlWriter = XmlWriter.Create(stringWriter, settings))
+                {
+                    var serializer = new XmlSerializer(typeof(ConfXml));
+                    var namespaces = new XmlSerializerNamespaces(new[] { new XmlQualifiedName() });
+                    serializer.Serialize(xmlWriter, conf.conf, namespaces);
+                }
+                File.WriteAllText(conf.path, stringWriter.ToString());
             }
         }
 
@@ -94,6 +78,8 @@ namespace SolAR
         protected void LOG_ERROR(string message, params object[] objects) { Debug.LogErrorFormat(this, message, objects); }
         protected void LOG_INFO(string message, params object[] objects) { Debug.LogWarningFormat(this, message, objects); }
         protected void LOG_DEBUG(string message, params object[] objects) { Debug.LogFormat(this, message, objects); }
+
+        protected void LOG_ADD_LOG_TO_CONSOLE() { }
 
         protected const long CLOCKS_PER_SEC = TimeSpan.TicksPerSecond;
 

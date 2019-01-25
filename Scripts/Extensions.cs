@@ -193,10 +193,15 @@ namespace SolAR
 
         public static Pose ToUnity(this Transform3Df pose)
         {
+            var inv = new Matrix4x4();
+            inv.SetRow(0, new Vector4(+1, +0, +0, +0));
+            inv.SetRow(1, new Vector4(+0, -1, +0, +0));
+            inv.SetRow(2, new Vector4(+0, +0, +1, +0));
+            inv.SetRow(3, new Vector4(+0, +0, +0, +1));
+
             var rot = pose.rotation();
             var trans = pose.translation();
             var m = new Matrix4x4();
-            var v = new Vector3();
             for (int r = 0; r < 3; ++r)
             {
                 for (int c = 0; c < 3; ++c)
@@ -204,10 +209,21 @@ namespace SolAR
                     m[r, c] = rot.coeff(r, c);
                 }
                 m[r, 3] = trans.coeff(r, 0);
-                v[r] = trans.coeff(r, 0);
             }
-            m[3, 3] = 1;
-            var q = Quaternion.LookRotation(m.GetColumn(2), -m.GetColumn(1));
+            m.SetRow(3, new Vector4(0, 0, 0, 1));
+
+            m = m.inverse;
+
+            m = inv * m;
+
+            //m = m.inverse;
+
+            var v = m.GetColumn(3);
+            var q = Quaternion.LookRotation(m.GetColumn(2), m.GetColumn(1));
+
+            q = Quaternion.Inverse(q);
+            v = q * -v;
+
             return new Pose(v, q);
         }
 
@@ -313,10 +329,10 @@ namespace SolAR
                 case IProperty.PropertyType.IProperty_DOUBLE:
                     {
                         var v = (double)value;
-                        using (var scope = GUITools.changeCheckScope)
+                        using (Scope.ChangeCheck)
                         {
                             var text = GUILayout.TextField(value.ToString());
-                            if (scope.Changed)
+                            if (GUI.changed)
                             {
                                 if (double.TryParse(text, out v))
                                 {
@@ -329,10 +345,10 @@ namespace SolAR
                 case IProperty.PropertyType.IProperty_FLOAT:
                     {
                         var v = (float)value;
-                        using (var scope = GUITools.changeCheckScope)
+                        using (Scope.ChangeCheck)
                         {
                             var text = GUILayout.TextField(value.ToString());
-                            if (scope.Changed)
+                            if (GUI.changed)
                             {
                                 if (float.TryParse(text, out v))
                                 {
@@ -345,10 +361,10 @@ namespace SolAR
                 case IProperty.PropertyType.IProperty_INTEGER:
                     {
                         var v = (int)value;
-                        using (var scope = GUITools.changeCheckScope)
+                        using (Scope.ChangeCheck)
                         {
                             var text = GUILayout.TextField(value.ToString());
-                            if (scope.Changed)
+                            if (GUI.changed)
                             {
                                 if (int.TryParse(text, out v))
                                 {
@@ -361,10 +377,10 @@ namespace SolAR
                 case IProperty.PropertyType.IProperty_LONG:
                     {
                         var v = (long)value;
-                        using (var scope = GUITools.changeCheckScope)
+                        using (Scope.ChangeCheck)
                         {
                             var text = GUILayout.TextField(value.ToString());
-                            if (scope.Changed)
+                            if (GUI.changed)
                             {
                                 if (long.TryParse(text, out v))
                                 {
@@ -379,10 +395,10 @@ namespace SolAR
                 case IProperty.PropertyType.IProperty_UINTEGER:
                     {
                         var v = (uint)value;
-                        using (var scope = GUITools.changeCheckScope)
+                        using (Scope.ChangeCheck)
                         {
                             var text = GUILayout.TextField(value.ToString());
-                            if (scope.Changed)
+                            if (GUI.changed)
                             {
                                 if (uint.TryParse(text, out v))
                                 {
@@ -395,10 +411,10 @@ namespace SolAR
                 case IProperty.PropertyType.IProperty_ULONG:
                     {
                         var v = (ulong)value;
-                        using (var scope = GUITools.changeCheckScope)
+                        using (Scope.ChangeCheck)
                         {
                             var text = GUILayout.TextField(value.ToString());
-                            if (scope.Changed)
+                            if (GUI.changed)
                             {
                                 if (ulong.TryParse(text, out v))
                                 {

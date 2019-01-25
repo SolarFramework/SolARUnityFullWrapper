@@ -28,7 +28,7 @@ namespace SolAR
 
         void OnStatus(bool isTracking)
         {
-            camera.cullingMask = isTracking ? -1 : 0;
+            //camera.cullingMask = isTracking ? -1 : 0;
             var pose = solARManager.Pose;
             transform.SetPositionAndRotation(pose.position, pose.rotation);
         }

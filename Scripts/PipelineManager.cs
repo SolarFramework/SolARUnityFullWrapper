@@ -15,6 +15,7 @@ namespace SolAR
     {
         public event Action<bool> OnStatus;
         public event Action<Texture> OnFrame;
+        public event Action<Sizei, Matrix3x3f, Vector5Df> OnCalibrate;
         public Pose Pose { get { return pose.ToUnity(); } }
 
         enum SOURCE { SolAR, Unity }
@@ -70,10 +71,14 @@ namespace SolAR
                 case SOURCE.SolAR:
                     camera = xpcfComponentManager.create("SolARCameraOpencv").bindTo<ICamera>().AddTo(subscriptions);
 
-                    pipeline.SetCameraParameters(camera.getIntrinsicsParameters(), camera.getDistorsionParameters());
-                    overlay3D.setCameraParameters(camera.getIntrinsicsParameters(), camera.getDistorsionParameters());
+                    var intrinsic = camera.getIntrinsicsParameters();
+                    var distorsion = camera.getDistorsionParameters();
+                    var resolution = camera.getResolution();
+                    pipeline.SetCameraParameters(intrinsic, distorsion);
+                    overlay3D.setCameraParameters(intrinsic, distorsion);
+                    OnCalibrate?.Invoke(resolution, intrinsic, distorsion);
 
-                    if (camera.start() != FrameworkReturnCode._SUCCESS) // Camera
+                    if (camera.start() != FrameworkReturnCode._SUCCESS)
                     {
                         LOG_ERROR("Camera cannot start");
                         enabled = false;
