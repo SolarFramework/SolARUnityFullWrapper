@@ -38,6 +38,6 @@ public static class SharedPtr
         var type = typeof(solar_datastructure);
         var method = type.GetMethod("newPointer_" + name, BindingFlags.Public | BindingFlags.Static);
         Assert.IsNotNull(method);
-        return (IntPtr) method.Invoke(null, new object[] { });
+        return (IntPtr)method.Invoke(null, new object[] { });
     }
 }

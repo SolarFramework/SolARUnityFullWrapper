@@ -56,7 +56,7 @@ namespace SolAR
             if (rTex == null)
             {
                 rTex = new RenderTexture(w, h, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
-                foreach(var m in materials)
+                foreach (var m in materials)
                 {
                     m.SetTexture(propertyId, rTex);
                 }

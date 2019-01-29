@@ -52,9 +52,4 @@ public static class Scope
     {
         return (!enabled || GUI_DISABLE_COUNT > 0) ? Disable : Disposable.Empty;
     }
-
-    static readonly IDisposable _enableScope = Disposable.Create(() =>
-    {
-        if (GUI_DISABLE_COUNT > 0) { _Disable.Dispose(); }
-    });
 }

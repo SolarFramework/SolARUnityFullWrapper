@@ -14,6 +14,9 @@
 * limitations under the License.
 */
 
+//#define VIDEO_INPUT
+#define NDEBUG
+
 using SolAR.Api.Features;
 using SolAR.Api.Geom;
 using SolAR.Api.Image;
@@ -22,13 +25,212 @@ using SolAR.Api.Solver.Pose;
 using SolAR.Core;
 using SolAR.Datastructure;
 using UniRx;
-using UnityEngine.Assertions;
 using XPCF.Api;
 
 namespace SolAR.Samples
 {
     public class FiducialPipeline : AbstractPipeline
     {
+        public FiducialPipeline(IComponentManager xpcfComponentManager) : base(xpcfComponentManager)
+        {
+            binaryMarker = xpcfComponentManager.create("SolARMarker2DSquaredBinaryOpencv").AddTo(subscriptions).bindTo<IMarker2DSquaredBinary>().AddTo(subscriptions);
+
+#if !NDEBUG
+            imageViewer = xpcfComponentManager.create("SolARImageViewerOpencv").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
+            imageViewerGrey = xpcfComponentManager.create("SolARImageViewerOpencv", "grey").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
+            imageViewerBinary = xpcfComponentManager.create("SolARImageViewerOpencv", "binary").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
+            imageViewerContours = xpcfComponentManager.create("SolARImageViewerOpencv", "contours").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
+            imageViewerFilteredContours = xpcfComponentManager.create("SolARImageViewerOpencv", "filteredContours").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
+#endif
+
+            imageFilterBinary = xpcfComponentManager.create("SolARImageFilterBinaryOpencv").AddTo(subscriptions).bindTo<IImageFilter>().AddTo(subscriptions);
+            imageConvertor = xpcfComponentManager.create("SolARImageConvertorOpencv").AddTo(subscriptions).bindTo<IImageConvertor>().AddTo(subscriptions);
+            contoursExtractor = xpcfComponentManager.create("SolARContoursExtractorOpencv").AddTo(subscriptions).bindTo<IContoursExtractor>().AddTo(subscriptions);
+            contoursFilter = xpcfComponentManager.create("SolARContoursFilterBinaryMarkerOpencv").AddTo(subscriptions).bindTo<IContoursFilter>().AddTo(subscriptions);
+            perspectiveController = xpcfComponentManager.create("SolARPerspectiveControllerOpencv").AddTo(subscriptions).bindTo<IPerspectiveController>().AddTo(subscriptions);
+            patternDescriptorExtractor = xpcfComponentManager.create("SolARDescriptorsExtractorSBPatternOpencv").AddTo(subscriptions).bindTo<IDescriptorsExtractorSBPattern>().AddTo(subscriptions);
+
+            patternMatcher = xpcfComponentManager.create("SolARDescriptorMatcherRadiusOpencv").AddTo(subscriptions).bindTo<IDescriptorMatcher>().AddTo(subscriptions);
+            patternReIndexer = xpcfComponentManager.create("SolARSBPatternReIndexer").AddTo(subscriptions).bindTo<ISBPatternReIndexer>().AddTo(subscriptions);
+
+            img2worldMapper = xpcfComponentManager.create("SolARImage2WorldMapper4Marker2D").AddTo(subscriptions).bindTo<IImage2WorldMapper>().AddTo(subscriptions);
+            PnP = xpcfComponentManager.create("SolARPoseEstimationPnpOpencv").AddTo(subscriptions).bindTo<I3DTransformFinderFrom2D3D>().AddTo(subscriptions);
+#if !NDEBUG
+            overlay2DContours = xpcfComponentManager.create("SolAR2DOverlayOpencv", "contours").AddTo(subscriptions).bindTo<I2DOverlay>().AddTo(subscriptions);
+            overlay2DCircles = xpcfComponentManager.create("SolAR2DOverlayOpencv", "circles").AddTo(subscriptions).bindTo<I2DOverlay>().AddTo(subscriptions);
+#endif
+
+            greyImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
+            binaryImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
+#if !NDEBUG
+            contoursImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
+            filteredContoursImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
+#endif
+
+            contours = new Contour2DfList().AddTo(subscriptions);
+            filtered_contours = new Contour2DfList().AddTo(subscriptions);
+            patches = new ImageList().AddTo(subscriptions);
+            recognizedContours = new Contour2DfList().AddTo(subscriptions);
+            recognizedPatternsDescriptors = new DescriptorBuffer().AddTo(subscriptions);
+            markerPatternDescriptor = new DescriptorBuffer().AddTo(subscriptions);
+            patternMatches = new DescriptorMatchVector().AddTo(subscriptions);
+            pattern2DPoints = new Point2DfList().AddTo(subscriptions);
+            img2DPoints = new Point2DfList().AddTo(subscriptions);
+            pattern3DPoints = new Point3DfList().AddTo(subscriptions);
+            //CamCalibration K;
+
+            // components initialisation
+            binaryMarker.loadMarker().Check();
+            patternDescriptorExtractor.extract(binaryMarker.getPattern(), markerPatternDescriptor).Check();
+            var binaryMarkerSize = binaryMarker.getSize();
+
+            var patternSize = binaryMarker.getPattern().getSize();
+
+            patternDescriptorExtractor.bindTo<IConfigurable>().getProperty("patternSize").setIntegerValue(patternSize);
+            patternReIndexer.bindTo<IConfigurable>().getProperty("sbPatternSize").setIntegerValue(patternSize);
+
+            // NOT WORKING ! initialize image mapper with the reference image size and marker size
+            var img2worldMapperConf = img2worldMapper.bindTo<IConfigurable>();
+            img2worldMapperConf.getProperty("digitalWidth").setIntegerValue(patternSize);
+            img2worldMapperConf.getProperty("digitalHeight").setIntegerValue(patternSize);
+            img2worldMapperConf.getProperty("worldWidth").setFloatingValue(binaryMarkerSize.width);
+            img2worldMapperConf.getProperty("worldHeight").setFloatingValue(binaryMarkerSize.height);
+        }
+
+        public override Sizef GetMarkerSize() { return binaryMarker.getSize(); }
+        public override void SetCameraParameters(Matrix3x3f intrinsics, Vector5Df distorsion)
+        {
+            PnP.setCameraParameters(intrinsics, distorsion);
+        }
+
+        public override FrameworkReturnCode Proceed(Image inputImage, Transform3Df pose)
+        {
+            // Convert Image from RGB to grey
+            imageConvertor.convert(inputImage, greyImage, Image.ImageLayout.LAYOUT_GREY).Check();
+
+            // Convert Image from grey to black and white
+            imageFilterBinary.filter(greyImage, binaryImage).Check();
+
+            // Extract contours from binary image
+            contoursExtractor.extract(binaryImage, contours).Check();
+#if !NDEBUG
+            contoursImage = binaryImage.copy();
+            overlay2DContours.drawContours(contours, contoursImage).Check();
+#endif
+            // Filter 4 edges contours to find those candidate for marker contours
+            contoursFilter.filter(contours, filtered_contours).Check();
+
+#if !NDEBUG
+            filteredContoursImage = binaryImage.copy();
+            overlay2DContours.drawContours(filtered_contours, filteredContoursImage).Check();
+#endif
+            // Create one warpped and cropped image by contour
+            perspectiveController.correct(binaryImage, filtered_contours, patches).Check();
+
+            // test if this last image is really a squared binary marker, and if it is the case, extract its descriptor
+            if (patternDescriptorExtractor.extract(patches, filtered_contours, recognizedPatternsDescriptors, recognizedContours) == FrameworkReturnCode._SUCCESS)
+            {
+
+#if !NDEBUG
+                var std__cout = new System.Text.StringBuilder();
+                LOG_DEBUG("Looking for the following descriptor:");
+                /*
+                for (var i = 0; i < markerPatternDescriptor.getNbDescriptors() * markerPatternDescriptor.getDescriptorByteSize(); i++)
+                {
+
+                    if (i % patternSize == 0)
+                        std__cout.Append("[");
+                    if (i % patternSize != patternSize - 1)
+                        std__cout.Append(markerPatternDescriptor.data()[i]).Append(", ");
+                    else
+                        std__cout.Append(markerPatternDescriptor.data()[i]).Append("]").AppendLine();
+                }
+                std__cout.AppendLine();
+                */
+
+                /*
+                std__cout.Append(recognizedPatternsDescriptors.getNbDescriptors()).Append(" recognized Pattern Descriptors ").AppendLine();
+                uint desrciptorSize = recognizedPatternsDescriptors.getDescriptorByteSize();
+                for (uint i = 0; i < recognizedPatternsDescriptors.getNbDescriptors() / 4; i++)
+                {
+                    for (int j = 0; j < patternSize; j++)
+                    {
+                        for (int k = 0; k < 4; k++)
+                        {
+                            std__cout.Append("[");
+                            for (int l = 0; l < patternSize; l++)
+                            {
+                                std__cout.Append(recognizedPatternsDescriptors.data()[desrciptorSize*((i*4)+k) + j*patternSize + l]);
+                                if (l != patternSize - 1)
+                                    std__cout.Append(", ");
+                            }
+                            std__cout.Append("]");
+                        }
+                        std__cout.AppendLine();
+                    }
+                    std__cout.AppendLine().AppendLine();
+                }
+                */
+
+                /*
+                std__cout.Append(recognizedContours.Count).Append(" Recognized Pattern contour ").AppendLine();
+                for (int i = 0; i < recognizedContours.Count / 4; i++)
+                {
+                    for (int j = 0; j < recognizedContours[i].Count; j++)
+                    {
+                        for (int k = 0; k < 4; k++)
+                        {
+                            std__cout.Append("[").Append(recognizedContours[i * 4 + k][j].getX()).Append(", ").Append(recognizedContours[i * 4 + k][j].getY()).Append("] ");
+                        }
+                        std__cout.AppendLine();
+                    }
+                    std__cout.AppendLine().AppendLine();
+                }
+                std__cout.AppendLine();
+                */
+#endif
+
+                // From extracted squared binary pattern, match the one corresponding to the squared binary marker
+                if (patternMatcher.match(markerPatternDescriptor, recognizedPatternsDescriptors, patternMatches) == DescriptorMatcherRetCode.DESCRIPTORS_MATCHER_OK)
+                {
+#if !NDEBUG
+                    std__cout.Append("Matches :").AppendLine();
+                    for (int num_match = 0; num_match < patternMatches.Count; num_match++)
+                        std__cout.Append("Match [").Append(patternMatches[num_match].getIndexInDescriptorA()).Append(",").Append(patternMatches[num_match].getIndexInDescriptorB()).Append("], dist = ").Append(patternMatches[num_match].getMatchingScore()).AppendLine();
+                    std__cout.AppendLine().AppendLine();
+#endif
+
+                    // Reindex the pattern to create two vector of points, the first one corresponding to marker corner, the second one corresponding to the poitsn of the contour
+                    patternReIndexer.reindex(recognizedContours, patternMatches, pattern2DPoints, img2DPoints).Check();
+#if !NDEBUG
+                    LOG_DEBUG("2D Matched points :");
+                    for (int i = 0; i < img2DPoints.Count; i++)
+                        LOG_DEBUG("{0}", img2DPoints[i]);
+                    for (int i = 0; i < pattern2DPoints.Count; i++)
+                        LOG_DEBUG("{0}", pattern2DPoints[i]);
+                    overlay2DCircles.drawCircles(img2DPoints, inputImage);
+#endif
+                    // Compute the 3D position of each corner of the marker
+                    img2worldMapper.map(pattern2DPoints, pattern3DPoints).Check();
+#if !NDEBUG
+                    std__cout.Append("3D Points position:").AppendLine();
+                    for (int i = 0; i < pattern3DPoints.Count; i++)
+                        LOG_DEBUG("{0}", pattern3DPoints[i]);
+#endif
+                    // Compute the pose of the camera using a Perspective n Points algorithm using only the 4 corners of the marker
+                    if (PnP.estimate(img2DPoints, pattern3DPoints, pose) == FrameworkReturnCode._SUCCESS)
+                    {
+                        return FrameworkReturnCode._SUCCESS;
+                    }
+                }
+#if !NDEBUG
+                Debug.Log(std__cout.ToString());
+                std__cout.Clear();
+#endif
+            }
+            return FrameworkReturnCode._ERROR_;
+        }
+
         // structures
         readonly Image greyImage;
         readonly Image binaryImage;
@@ -47,6 +249,14 @@ namespace SolAR.Samples
         // components
         readonly IMarker2DSquaredBinary binaryMarker;
 
+#if !NDEBUG
+        readonly IImageViewer imageViewer;
+        readonly IImageViewer imageViewerGrey;
+        readonly IImageViewer imageViewerBinary;
+        readonly IImageViewer imageViewerContours;
+        readonly IImageViewer imageViewerFilteredContours;
+#endif
+
         readonly IImageConvertor imageConvertor;
         readonly IImageFilter imageFilterBinary;
         readonly IContoursExtractor contoursExtractor;
@@ -59,99 +269,10 @@ namespace SolAR.Samples
 
         readonly IImage2WorldMapper img2worldMapper;
         readonly I3DTransformFinderFrom2D3D PnP;
+#if !NDEBUG
+        I2DOverlay overlay2DContours;
+        I2DOverlay overlay2DCircles;
+#endif
 
-        public FiducialPipeline(IComponentManager xpcfComponentManager) : base(xpcfComponentManager)
-        {
-            // structures
-            greyImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
-            binaryImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
-
-            contours = new Contour2DfList().AddTo(subscriptions);
-            filtered_contours = new Contour2DfList().AddTo(subscriptions);
-            patches = new ImageList().AddTo(subscriptions);
-            recognizedContours = new Contour2DfList().AddTo(subscriptions);
-            recognizedPatternsDescriptors = new DescriptorBuffer().AddTo(subscriptions);
-            markerPatternDescriptor = new DescriptorBuffer().AddTo(subscriptions);
-            patternMatches = new DescriptorMatchVector().AddTo(subscriptions);
-            pattern2DPoints = new Point2DfList().AddTo(subscriptions);
-            img2DPoints = new Point2DfList().AddTo(subscriptions);
-            pattern3DPoints = new Point3DfList().AddTo(subscriptions);
-
-            // components
-            binaryMarker = xpcfComponentManager.create("SolARMarker2DSquaredBinaryOpencv").bindTo<IMarker2DSquaredBinary>().AddTo(subscriptions);
-
-            imageConvertor = xpcfComponentManager.create("SolARImageConvertorOpencv").bindTo<IImageConvertor>().AddTo(subscriptions);
-            imageFilterBinary = xpcfComponentManager.create("SolARImageFilterBinaryOpencv").bindTo<IImageFilter>().AddTo(subscriptions);
-            contoursExtractor = xpcfComponentManager.create("SolARContoursExtractorOpencv").bindTo<IContoursExtractor>().AddTo(subscriptions);
-            contoursFilter = xpcfComponentManager.create("SolARContoursFilterBinaryMarkerOpencv").bindTo<IContoursFilter>().AddTo(subscriptions);
-            perspectiveController = xpcfComponentManager.create("SolARPerspectiveControllerOpencv").bindTo<IPerspectiveController>().AddTo(subscriptions);
-            patternDescriptorExtractor = xpcfComponentManager.create("SolARDescriptorsExtractorSBPatternOpencv").bindTo<IDescriptorsExtractorSBPattern>().AddTo(subscriptions);
-
-            patternMatcher = xpcfComponentManager.create("SolARDescriptorMatcherRadiusOpencv").bindTo<IDescriptorMatcher>().AddTo(subscriptions);
-            patternReIndexer = xpcfComponentManager.create("SolARSBPatternReIndexer").bindTo<ISBPatternReIndexer>().AddTo(subscriptions);
-
-            img2worldMapper = xpcfComponentManager.create("SolARImage2WorldMapper4Marker2D").bindTo<IImage2WorldMapper>().AddTo(subscriptions);
-            PnP = xpcfComponentManager.create("SolARPoseEstimationPnpOpencv").bindTo<I3DTransformFinderFrom2D3D>().AddTo(subscriptions);
-
-            // components initialisation
-            ok = binaryMarker.loadMarker();
-            ok = patternDescriptorExtractor.extract(binaryMarker.getPattern(), markerPatternDescriptor);
-
-            // Set the size of the box to display according to the marker size in world unit
-
-            int patternSize = binaryMarker.getPattern().getSize();
-
-            patternDescriptorExtractor.bindTo<IConfigurable>().getProperty("patternSize").setIntegerValue(patternSize);
-            patternReIndexer.bindTo<IConfigurable>().getProperty("sbPatternSize").setIntegerValue(patternSize);
-
-            // NOT WORKING ! initialize image mapper with the reference image size and marker size
-            var img2worldMapperConf = img2worldMapper.bindTo<IConfigurable>();
-            img2worldMapperConf.getProperty("digitalWidth").setIntegerValue(patternSize);
-            img2worldMapperConf.getProperty("digitalHeight").setIntegerValue(patternSize);
-            img2worldMapperConf.getProperty("worldWidth").setFloatingValue(binaryMarker.getSize().width);
-            img2worldMapperConf.getProperty("worldHeight").setFloatingValue(binaryMarker.getSize().height);
-        }
-
-        public Sizef GetMarkerSize() { return binaryMarker.getSize(); }
-        public void SetCameraParameters(Matrix3x3f intrinsics, Vector5Df distorsion) { PnP.setCameraParameters(intrinsics, distorsion); }
-
-        public FrameworkReturnCode Proceed(Image inputImage, Transform3Df pose)
-        {
-            // Convert Image from RGB to grey
-            ok = imageConvertor.convert(inputImage, greyImage, Image.ImageLayout.LAYOUT_GREY);
-
-            // Convert Image from grey to black and white
-            ok = imageFilterBinary.filter(greyImage, binaryImage);
-
-            // Extract contours from binary image
-            ok = contoursExtractor.extract(binaryImage, contours);
-
-            // Filter 4 edges contours to find those candidate for marker contours
-            ok = contoursFilter.filter(contours, filtered_contours);
-
-            // Create one warpped and cropped image by contour
-            ok = perspectiveController.correct(binaryImage, filtered_contours, patches);
-
-            // test if this last image is really a squared binary marker, and if it is the case, extract its descriptor
-            if (patternDescriptorExtractor.extract(patches, filtered_contours, recognizedPatternsDescriptors, recognizedContours) == FrameworkReturnCode._SUCCESS)
-            {
-                // From extracted squared binary pattern, match the one corresponding to the squared binary marker
-                if (patternMatcher.match(markerPatternDescriptor, recognizedPatternsDescriptors, patternMatches) == DescriptorMatcherRetCode.DESCRIPTORS_MATCHER_OK)
-                {
-                    // Reindex the pattern to create two vector of points, the first one corresponding to marker corner, the second one corresponding to the poitsn of the contour
-                    ok = patternReIndexer.reindex(recognizedContours, patternMatches, pattern2DPoints, img2DPoints);
-
-                    // Compute the 3D position of each corner of the marker
-                    ok = img2worldMapper.map(pattern2DPoints, pattern3DPoints);
-
-                    // Compute the pose of the camera using a Perspective n Points algorithm using only the 4 corners of the marker
-                    if (PnP.estimate(img2DPoints, pattern3DPoints, pose) == FrameworkReturnCode._SUCCESS)
-                    {
-                        return FrameworkReturnCode._SUCCESS;
-                    }
-                }
-            }
-            return FrameworkReturnCode._ERROR_;
-        }
     }
 }

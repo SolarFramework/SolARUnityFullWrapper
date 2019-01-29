@@ -18,11 +18,11 @@ namespace SolAR
         public event Action<Sizei, Matrix3x3f, Vector5Df> OnCalibrate;
         public Pose Pose { get { return pose.ToUnity(); } }
 
-        enum SOURCE { SolAR, Unity }
-        [SerializeField] SOURCE source = SOURCE.SolAR;
+        protected enum SOURCE { SolAR, Unity }
+        [SerializeField] protected SOURCE source = SOURCE.SolAR;
 
-        enum DISPLAY { None, SolAR, Unity, }
-        [SerializeField] DISPLAY display = DISPLAY.Unity;
+        protected enum DISPLAY { None, SolAR, Unity, }
+        [SerializeField] protected DISPLAY display = DISPLAY.Unity;
 
         [SerializeField] protected bool mogrify;
 
@@ -37,16 +37,52 @@ namespace SolAR
         IImageViewer imageViewer;
 
         // to count the average number of processed frames per seconds
-        [SerializeField]
         int count = 0;
         long start;
         long end;
+
+        public enum PIPELINE
+        {
+            Fiducial,
+            Natural,
+        }
+        public PIPELINE mode;
+
+        /*
+        PIPELINE _mode;
+
+        protected void Awake() { _mode = mode; }
+
+        protected void OnValidate()
+        {
+            if (!Application.isPlaying) return;
+            if (!isActiveAndEnabled) return;
+            if (_mode != mode)
+            {
+                _mode = mode;
+
+                pipeline?.Dispose();
+
+                switch (mode)
+                {
+                    case PIPELINE.Fiducial:
+                        pipeline = new FiducialPipeline(xpcfComponentManager).AddTo(subscriptions);
+                        break;
+                    case PIPELINE.Natural:
+                        pipeline = new FiducialPipeline(xpcfComponentManager).AddTo(subscriptions);
+                        break;
+                }
+            }
+        }
+        */
 
         protected override void OnEnable()
         {
             base.OnEnable();
 
-            xpcfComponentManager = xpcf_api.getComponentManagerInstance().AddTo(subscriptions);
+            xpcfComponentManager = xpcf_api.getComponentManagerInstance();
+            Disposable.Create(xpcfComponentManager.clear).AddTo(subscriptions);
+            xpcfComponentManager.AddTo(subscriptions);
 
             if (xpcfComponentManager.load(conf.path) != XPCFErrorCode._SUCCESS)
             {
@@ -55,16 +91,17 @@ namespace SolAR
                 return;
             }
 
-            pipeline = new FiducialPipeline(xpcfComponentManager).AddTo(subscriptions);
+            switch (mode)
+            {
+                case PIPELINE.Fiducial:
+                    pipeline = new FiducialPipeline(xpcfComponentManager).AddTo(subscriptions);
+                    break;
+                case PIPELINE.Natural:
+                    pipeline = new NaturalPipeline(xpcfComponentManager).AddTo(subscriptions);
+                    break;
+            }
 
             overlay3D = xpcfComponentManager.create("SolAR3DOverlayBoxOpencv").bindTo<I3DOverlay>().AddTo(subscriptions);
-
-            // Set the size of the box to display according to the marker size in world unit
-            var overlay3D_sizeProp = overlay3D.bindTo<IConfigurable>().getProperty("size");
-            var size = pipeline.GetMarkerSize();
-            overlay3D_sizeProp.setFloatingValue(size.width, 0);
-            overlay3D_sizeProp.setFloatingValue(size.height, 1);
-            overlay3D_sizeProp.setFloatingValue(size.height / 2.0f, 2);
 
             switch (source)
             {
@@ -94,9 +131,17 @@ namespace SolAR
                     }
                     break;
             }
+
             switch (display)
             {
                 case DISPLAY.SolAR:
+                    // Set the size of the box to display according to the marker size in world unit
+                    var overlay3D_sizeProp = overlay3D.bindTo<IConfigurable>().getProperty("size");
+                    var size = pipeline.GetMarkerSize();
+                    overlay3D_sizeProp.setFloatingValue(size.width, 0);
+                    overlay3D_sizeProp.setFloatingValue(size.height, 1);
+                    overlay3D_sizeProp.setFloatingValue(size.height / 2.0f, 2);
+
                     imageViewer = xpcfComponentManager.create("SolARImageViewerOpencv").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
                     break;
                 case DISPLAY.Unity:
@@ -109,7 +154,7 @@ namespace SolAR
             pose = new Transform3Df().AddTo(subscriptions);
         }
 
-        FiducialPipeline pipeline;
+        IPipeline pipeline;
         WebCamTexture webcam;
 
         protected void Update()

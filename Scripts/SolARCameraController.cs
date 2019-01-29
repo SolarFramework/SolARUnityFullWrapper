@@ -8,12 +8,12 @@ namespace SolAR
     public class SolARCameraController : MonoBehaviour
     {
         [SerializeField] protected PipelineManager solARManager;
-        new Camera camera;
+        //new Camera camera;
 
         protected void Awake()
         {
             Assert.IsNotNull(solARManager);
-            camera = GetComponent<Camera>();
+            //camera = GetComponent<Camera>();
         }
 
         protected void OnEnable()

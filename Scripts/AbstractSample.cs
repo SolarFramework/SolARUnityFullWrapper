@@ -5,9 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
-using SolAR.Core;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 #pragma warning disable IDE1006 // Styles d'affectation de noms
 namespace SolAR
@@ -15,8 +13,6 @@ namespace SolAR
     public abstract class AbstractSample : MonoBehaviour
     {
         protected readonly IList<IDisposable> subscriptions = new List<IDisposable>();
-
-        protected FrameworkReturnCode ok { set { Assert.AreEqual(FrameworkReturnCode._SUCCESS, value); } }
 
         [HideInInspector]
         public Configuration conf;
