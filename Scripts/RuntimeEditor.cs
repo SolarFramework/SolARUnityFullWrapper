@@ -11,7 +11,9 @@ public partial class RuntimeEditor : MonoBehaviour
 
     public IComponentManager xpcfManager { get { return xpcf_api.getComponentManagerInstance(); } }
 
-    readonly IList<IComponentIntrospect> xpcfComponents = new List<IComponentIntrospect>();
+    public PipelineManager pipelineManager;
+
+    readonly List<IComponentIntrospect> xpcfComponents = new List<IComponentIntrospect>();
     GUIContent[] guiComponents;
     int idComponent = -1;
     IComponentIntrospect xpcfComponent;
@@ -22,26 +24,31 @@ public partial class RuntimeEditor : MonoBehaviour
 
     IConfigurable xpcfConfigurable;
 
-    public void Add(IComponentIntrospect component)
-    {
-        xpcfComponents.Add(component);
-        guiComponents = xpcfComponents.Select(c => new GUIContent(c.GetType().Name)).ToArray();
-    }
-
     protected void Awake()
     {
         configurableUUID = configurableUUID ?? new UUID("98DBA14F-6EF9-462E-A387-34756B4CBA80");
     }
 
+    protected void OnEnable()
+    {
+        xpcfComponents.AddRange(pipelineManager.xpcfComponents);
+        guiComponents = xpcfComponents.Select(c => new GUIContent(c.GetType().Name)).ToArray();
+    }
+
+    protected void OnDisable()
+    {
+        xpcfComponents.Clear();
+    }
+
     protected void OnGUI()
     {
-        using (new GUILayout.HorizontalScope())
+        using (new GUILayout.HorizontalScope(GUI.skin.box, GUILayout.ExpandWidth(true)))
         {
             if (guiComponents != null)
             {
                 using (Scope.ChangeCheck)
                 {
-                    idComponent = GUILayout.SelectionGrid(idComponent, guiComponents, 1, GUILayout.Width(300));
+                    idComponent = GUILayout.SelectionGrid(idComponent, guiComponents, 1, GUILayout.Width(200));
                     if (GUI.changed)
                     {
                         xpcfComponent = xpcfComponents[idComponent];
@@ -92,18 +99,17 @@ public partial class RuntimeEditor : MonoBehaviour
             }
             else
             {
-                using (new GUILayout.VerticalScope())
+                using (new GUILayout.VerticalScope(GUI.skin.box))
                 {
                     foreach (var p in xpcfConfigurable.getProperties())
                     {
                         var access = p.getAccessSpecifier();
                         var type = p.getType();
-                        object value = access.CanRead() ? value = p.Get() : type.Default();
+                        object value = access.CanRead() ? p.Get() : type.Default();
 
                         using (new GUILayout.HorizontalScope())
                         {
-                            GUILayout.Label(p.getName(), GUILayout.Width(300));
-                            //var size = p.size();
+                            GUILayout.Label(p.getName(), GUILayout.Width(200));
                             using (Scope.ChangeCheck)
                             {
                                 value = type.OnGUI(value);

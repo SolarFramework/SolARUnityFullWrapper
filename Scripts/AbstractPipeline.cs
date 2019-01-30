@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using SolAR;
 using SolAR.Core;
 using SolAR.Datastructure;
+using UniRx;
 using UnityEngine;
 using XPCF.Api;
 
@@ -10,6 +12,12 @@ public abstract class AbstractPipeline : IPipeline
     protected readonly IComponentManager xpcfComponentManager;
 
     protected readonly IList<IDisposable> subscriptions = new List<IDisposable>();
+
+    readonly List<IComponentIntrospect> _xpcfComponents = new List<IComponentIntrospect>();
+    public IEnumerable<IComponentIntrospect> xpcfComponents
+    {
+        get { return _xpcfComponents; }
+    }
 
     protected AbstractPipeline(IComponentManager xpcfComponentManager)
     {
@@ -20,6 +28,20 @@ public abstract class AbstractPipeline : IPipeline
     {
         foreach (var d in subscriptions) d.Dispose();
         subscriptions.Clear();
+    }
+
+    protected T Create<T>(string type) where T : IComponentIntrospect, IDisposable
+    {
+        var component = xpcfComponentManager.create(type).AddTo(subscriptions).bindTo<T>().AddTo(subscriptions);
+        _xpcfComponents.Add(component);
+        return component;
+    }
+
+    protected T Create<T>(string type, string name) where T : IComponentIntrospect, IDisposable
+    {
+        var component = xpcfComponentManager.create(type, name).AddTo(subscriptions).bindTo<T>().AddTo(subscriptions);
+        _xpcfComponents.Add(component);
+        return component;
     }
 
     protected void LOG_ERROR(string message, params object[] objects) { Debug.LogErrorFormat(message, objects); }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using SolAR.Api.Display;
 using SolAR.Api.Input.Devices;
 using SolAR.Core;
@@ -156,6 +157,11 @@ namespace SolAR
 
         IPipeline pipeline;
         WebCamTexture webcam;
+
+        public IEnumerable<IComponentIntrospect> xpcfComponents
+        {
+            get { return pipeline.xpcfComponents; }
+        }
 
         protected void Update()
         {

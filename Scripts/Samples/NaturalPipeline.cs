@@ -31,22 +31,22 @@ namespace SolAR.Samples
     {
         public NaturalPipeline(IComponentManager xpcfComponentManager) : base(xpcfComponentManager)
         {
-            imageViewerKeypoints = xpcfComponentManager.create("SolARImageViewerOpencv", "keypoints").bindTo<IImageViewer>().AddTo(subscriptions);
-            imageViewerResult = xpcfComponentManager.create("SolARImageViewerOpencv").bindTo<IImageViewer>().AddTo(subscriptions);
-            marker = xpcfComponentManager.create("SolARMarker2DNaturalImageOpencv").bindTo<IMarker2DNaturalImage>().AddTo(subscriptions);
-            kpDetector = xpcfComponentManager.create("SolARKeypointDetectorOpencv").bindTo<IKeypointDetector>().AddTo(subscriptions);
-            matcher = xpcfComponentManager.create("SolARDescriptorMatcherKNNOpencv").bindTo<IDescriptorMatcher>().AddTo(subscriptions);
-            basicMatchesFilter = xpcfComponentManager.create("SolARBasicMatchesFilter").bindTo<IMatchesFilter>().AddTo(subscriptions);
-            geomMatchesFilter = xpcfComponentManager.create("SolARGeometricMatchesFilterOpencv").bindTo<IMatchesFilter>().AddTo(subscriptions);
-            homographyEstimation = xpcfComponentManager.create("SolARHomographyEstimationOpencv").bindTo<I2DTransformFinder>().AddTo(subscriptions);
-            homographyValidation = xpcfComponentManager.create("SolARHomographyValidation").bindTo<IHomographyValidation>().AddTo(subscriptions);
-            keypointsReindexer = xpcfComponentManager.create("SolARKeypointsReIndexer").bindTo<IKeypointsReIndexer>().AddTo(subscriptions);
-            poseEstimation = xpcfComponentManager.create("SolARPoseEstimationPnpOpencv").bindTo<I3DTransformFinderFrom2D3D>().AddTo(subscriptions);
-            //poseEstimation =xpcfComponentManager.create("SolARPoseEstimationPnpEPFL").bindTo<I3DTransformFinderFrom2D3D>().AddTo(subscriptions);
-            overlay2DComponent = xpcfComponentManager.create("SolAR2DOverlayOpencv").bindTo<I2DOverlay>().AddTo(subscriptions);
-            img_mapper = xpcfComponentManager.create("SolARImage2WorldMapper4Marker2D").bindTo<IImage2WorldMapper>().AddTo(subscriptions);
-            transform2D = xpcfComponentManager.create("SolAR2DTransform").bindTo<I2DTransform>().AddTo(subscriptions);
-            descriptorExtractor = xpcfComponentManager.create("SolARDescriptorsExtractorAKAZE2Opencv").bindTo<IDescriptorsExtractor>().AddTo(subscriptions);
+            imageViewerKeypoints = Create<IImageViewer>("SolARImageViewerOpencv", "keypoints");
+            imageViewerResult = Create<IImageViewer>("SolARImageViewerOpencv");
+            marker = Create<IMarker2DNaturalImage>("SolARMarker2DNaturalImageOpencv");
+            kpDetector = Create<IKeypointDetector>("SolARKeypointDetectorOpencv");
+            matcher = Create<IDescriptorMatcher>("SolARDescriptorMatcherKNNOpencv");
+            basicMatchesFilter = Create<IMatchesFilter>("SolARBasicMatchesFilter");
+            geomMatchesFilter = Create<IMatchesFilter>("SolARGeometricMatchesFilterOpencv");
+            homographyEstimation = Create<I2DTransformFinder>("SolARHomographyEstimationOpencv");
+            homographyValidation = Create<IHomographyValidation>("SolARHomographyValidation");
+            keypointsReindexer = Create<IKeypointsReIndexer>("SolARKeypointsReIndexer");
+            poseEstimation = Create<I3DTransformFinderFrom2D3D>("SolARPoseEstimationPnpOpencv");
+            //poseEstimation = Create<I3DTransformFinderFrom2D3D>("SolARPoseEstimationPnpEPFL");
+            overlay2DComponent = Create<I2DOverlay>("SolAR2DOverlayOpencv");
+            img_mapper = Create<IImage2WorldMapper>("SolARImage2WorldMapper4Marker2D");
+            transform2D = Create<I2DTransform>("SolAR2DTransform");
+            descriptorExtractor = Create<IDescriptorsExtractor>("SolARDescriptorsExtractorAKAZE2Opencv");
 
             /* in dynamic mode, we need to check that components are well created*/
             /* this is needed in dynamic mode */

@@ -17,6 +17,7 @@
 //#define VIDEO_INPUT
 #define NDEBUG
 
+using SolAR.Api.Display;
 using SolAR.Api.Features;
 using SolAR.Api.Geom;
 using SolAR.Api.Image;
@@ -33,39 +34,35 @@ namespace SolAR.Samples
     {
         public FiducialPipeline(IComponentManager xpcfComponentManager) : base(xpcfComponentManager)
         {
-            binaryMarker = xpcfComponentManager.create("SolARMarker2DSquaredBinaryOpencv").AddTo(subscriptions).bindTo<IMarker2DSquaredBinary>().AddTo(subscriptions);
+            binaryMarker = Create<IMarker2DSquaredBinary>("SolARMarker2DSquaredBinaryOpencv");
 
 #if !NDEBUG
-            imageViewer = xpcfComponentManager.create("SolARImageViewerOpencv").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
-            imageViewerGrey = xpcfComponentManager.create("SolARImageViewerOpencv", "grey").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
-            imageViewerBinary = xpcfComponentManager.create("SolARImageViewerOpencv", "binary").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
-            imageViewerContours = xpcfComponentManager.create("SolARImageViewerOpencv", "contours").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
-            imageViewerFilteredContours = xpcfComponentManager.create("SolARImageViewerOpencv", "filteredContours").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
+            imageViewer = Create<IImageViewer>("SolARImageViewerOpencv");
+            imageViewerGrey = Create<IImageViewer>("SolARImageViewerOpencv", "grey");
+            imageViewerBinary = Create<IImageViewer>("SolARImageViewerOpencv", "binary");
+            imageViewerContours = Create<IImageViewer>("SolARImageViewerOpencv", "contours");
+            imageViewerFilteredContours = Create<IImageViewer>("SolARImageViewerOpencv", "filteredContours");
 #endif
 
-            imageFilterBinary = xpcfComponentManager.create("SolARImageFilterBinaryOpencv").AddTo(subscriptions).bindTo<IImageFilter>().AddTo(subscriptions);
-            imageConvertor = xpcfComponentManager.create("SolARImageConvertorOpencv").AddTo(subscriptions).bindTo<IImageConvertor>().AddTo(subscriptions);
-            contoursExtractor = xpcfComponentManager.create("SolARContoursExtractorOpencv").AddTo(subscriptions).bindTo<IContoursExtractor>().AddTo(subscriptions);
-            contoursFilter = xpcfComponentManager.create("SolARContoursFilterBinaryMarkerOpencv").AddTo(subscriptions).bindTo<IContoursFilter>().AddTo(subscriptions);
-            perspectiveController = xpcfComponentManager.create("SolARPerspectiveControllerOpencv").AddTo(subscriptions).bindTo<IPerspectiveController>().AddTo(subscriptions);
-            patternDescriptorExtractor = xpcfComponentManager.create("SolARDescriptorsExtractorSBPatternOpencv").AddTo(subscriptions).bindTo<IDescriptorsExtractorSBPattern>().AddTo(subscriptions);
+            imageFilterBinary = Create<IImageFilter>("SolARImageFilterBinaryOpencv");
+            imageConvertor = Create<IImageConvertor>("SolARImageConvertorOpencv");
+            contoursExtractor = Create<IContoursExtractor>("SolARContoursExtractorOpencv");
+            contoursFilter = Create<IContoursFilter>("SolARContoursFilterBinaryMarkerOpencv");
+            perspectiveController = Create<IPerspectiveController>("SolARPerspectiveControllerOpencv");
+            patternDescriptorExtractor = Create<IDescriptorsExtractorSBPattern>("SolARDescriptorsExtractorSBPatternOpencv");
 
-            patternMatcher = xpcfComponentManager.create("SolARDescriptorMatcherRadiusOpencv").AddTo(subscriptions).bindTo<IDescriptorMatcher>().AddTo(subscriptions);
-            patternReIndexer = xpcfComponentManager.create("SolARSBPatternReIndexer").AddTo(subscriptions).bindTo<ISBPatternReIndexer>().AddTo(subscriptions);
+            patternMatcher = Create<IDescriptorMatcher>("SolARDescriptorMatcherRadiusOpencv");
+            patternReIndexer = Create<ISBPatternReIndexer>("SolARSBPatternReIndexer");
 
-            img2worldMapper = xpcfComponentManager.create("SolARImage2WorldMapper4Marker2D").AddTo(subscriptions).bindTo<IImage2WorldMapper>().AddTo(subscriptions);
-            PnP = xpcfComponentManager.create("SolARPoseEstimationPnpOpencv").AddTo(subscriptions).bindTo<I3DTransformFinderFrom2D3D>().AddTo(subscriptions);
+            img2worldMapper = Create<IImage2WorldMapper>("SolARImage2WorldMapper4Marker2D");
+            PnP = Create<I3DTransformFinderFrom2D3D>("SolARPoseEstimationPnpOpencv");
 #if !NDEBUG
-            overlay2DContours = xpcfComponentManager.create("SolAR2DOverlayOpencv", "contours").AddTo(subscriptions).bindTo<I2DOverlay>().AddTo(subscriptions);
-            overlay2DCircles = xpcfComponentManager.create("SolAR2DOverlayOpencv", "circles").AddTo(subscriptions).bindTo<I2DOverlay>().AddTo(subscriptions);
+            overlay2DContours = Create<I2DOverlay>("SolAR2DOverlayOpencv", "contours");
+            overlay2DCircles = Create<I2DOverlay>("SolAR2DOverlayOpencv", "circles");
 #endif
 
             greyImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
             binaryImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
-#if !NDEBUG
-            contoursImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
-            filteredContoursImage = SharedPtr.Alloc<Image>().AddTo(subscriptions);
-#endif
 
             contours = new Contour2DfList().AddTo(subscriptions);
             filtered_contours = new Contour2DfList().AddTo(subscriptions);
@@ -114,15 +111,15 @@ namespace SolAR.Samples
             // Extract contours from binary image
             contoursExtractor.extract(binaryImage, contours).Check();
 #if !NDEBUG
-            contoursImage = binaryImage.copy();
-            overlay2DContours.drawContours(contours, contoursImage).Check();
+            var contoursImage = binaryImage.copy();
+            overlay2DContours.drawContours(contours, contoursImage);
 #endif
             // Filter 4 edges contours to find those candidate for marker contours
             contoursFilter.filter(contours, filtered_contours).Check();
 
 #if !NDEBUG
-            filteredContoursImage = binaryImage.copy();
-            overlay2DContours.drawContours(filtered_contours, filteredContoursImage).Check();
+            var filteredContoursImage = binaryImage.copy();
+            overlay2DContours.drawContours(filtered_contours, filteredContoursImage);
 #endif
             // Create one warpped and cropped image by contour
             perspectiveController.correct(binaryImage, filtered_contours, patches).Check();
@@ -133,8 +130,8 @@ namespace SolAR.Samples
 
 #if !NDEBUG
                 var std__cout = new System.Text.StringBuilder();
-                LOG_DEBUG("Looking for the following descriptor:");
                 /*
+                LOG_DEBUG("Looking for the following descriptor:");
                 for (var i = 0; i < markerPatternDescriptor.getNbDescriptors() * markerPatternDescriptor.getDescriptorByteSize(); i++)
                 {
 
@@ -224,7 +221,7 @@ namespace SolAR.Samples
                     }
                 }
 #if !NDEBUG
-                Debug.Log(std__cout.ToString());
+                //LOG_DEBUG(std__cout.ToString());
                 std__cout.Clear();
 #endif
             }
@@ -269,10 +266,10 @@ namespace SolAR.Samples
 
         readonly IImage2WorldMapper img2worldMapper;
         readonly I3DTransformFinderFrom2D3D PnP;
+
 #if !NDEBUG
         I2DOverlay overlay2DContours;
         I2DOverlay overlay2DCircles;
 #endif
-
     }
 }
