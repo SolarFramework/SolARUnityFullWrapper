@@ -102,12 +102,12 @@ namespace SolAR
                     break;
             }
 
-            overlay3D = xpcfComponentManager.create("SolAR3DOverlayBoxOpencv").bindTo<I3DOverlay>().AddTo(subscriptions);
+            overlay3D = xpcfComponentManager.Create("SolAR3DOverlayBoxOpencv").BindTo<I3DOverlay>().AddTo(subscriptions);
 
             switch (source)
             {
                 case SOURCE.SolAR:
-                    camera = xpcfComponentManager.create("SolARCameraOpencv").bindTo<ICamera>().AddTo(subscriptions);
+                    camera = xpcfComponentManager.Create("SolARCameraOpencv").BindTo<ICamera>().AddTo(subscriptions);
 
                     var intrinsic = camera.getIntrinsicsParameters();
                     var distorsion = camera.getDistorsionParameters();
@@ -137,13 +137,13 @@ namespace SolAR
             {
                 case DISPLAY.SolAR:
                     // Set the size of the box to display according to the marker size in world unit
-                    var overlay3D_sizeProp = overlay3D.bindTo<IConfigurable>().getProperty("size");
+                    var overlay3D_sizeProp = overlay3D.BindTo<IConfigurable>().getProperty("size");
                     var size = pipeline.GetMarkerSize();
                     overlay3D_sizeProp.setFloatingValue(size.width, 0);
                     overlay3D_sizeProp.setFloatingValue(size.height, 1);
                     overlay3D_sizeProp.setFloatingValue(size.height / 2.0f, 2);
 
-                    imageViewer = xpcfComponentManager.create("SolARImageViewerOpencv").AddTo(subscriptions).bindTo<IImageViewer>().AddTo(subscriptions);
+                    imageViewer = xpcfComponentManager.Create("SolARImageViewerOpencv").AddTo(subscriptions).BindTo<IImageViewer>().AddTo(subscriptions);
                     break;
                 case DISPLAY.Unity:
                     break;

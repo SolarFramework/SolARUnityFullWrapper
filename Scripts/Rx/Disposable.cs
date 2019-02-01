@@ -18,9 +18,9 @@ namespace UniRx
             public void Dispose() { action(); }
         }
 
-        public static T AddTo<T>(this T disposable, IList<IDisposable> list) where T : IDisposable
+        public static T AddTo<T>(this T disposable, CompositeDisposable collection) where T : IDisposable
         {
-            list.Add(disposable);
+            ((ICollection<IDisposable>)collection).Add(disposable);
             return disposable;
         }
     }

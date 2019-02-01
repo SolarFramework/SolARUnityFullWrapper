@@ -83,11 +83,11 @@ namespace SolAR.Samples
 
             var patternSize = binaryMarker.getPattern().getSize();
 
-            patternDescriptorExtractor.bindTo<IConfigurable>().getProperty("patternSize").setIntegerValue(patternSize);
-            patternReIndexer.bindTo<IConfigurable>().getProperty("sbPatternSize").setIntegerValue(patternSize);
+            patternDescriptorExtractor.BindTo<IConfigurable>().getProperty("patternSize").setIntegerValue(patternSize);
+            patternReIndexer.BindTo<IConfigurable>().getProperty("sbPatternSize").setIntegerValue(patternSize);
 
             // NOT WORKING ! initialize image mapper with the reference image size and marker size
-            var img2worldMapperConf = img2worldMapper.bindTo<IConfigurable>();
+            var img2worldMapperConf = img2worldMapper.BindTo<IConfigurable>();
             img2worldMapperConf.getProperty("digitalWidth").setIntegerValue(patternSize);
             img2worldMapperConf.getProperty("digitalHeight").setIntegerValue(patternSize);
             img2worldMapperConf.getProperty("worldWidth").setFloatingValue(binaryMarkerSize.width);

@@ -84,7 +84,7 @@ namespace SolAR.Samples
             LOG_INFO("EXTRACT MARKER DESCRIPTORS COMPUTED");
 
             // initialize image mapper with the reference image size and marker size
-            var img_mapper_config = img_mapper.bindTo<IConfigurable>().AddTo(subscriptions);
+            var img_mapper_config = img_mapper.BindTo<IConfigurable>().AddTo(subscriptions);
             var refSize = refImage.getSize();
             var mkSize = marker.getSize();
             img_mapper_config.getProperty("digitalWidth").setIntegerValue((int)refSize.width);

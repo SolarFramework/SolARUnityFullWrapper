@@ -46,7 +46,7 @@ public partial class RuntimeEditor : MonoBehaviour
         {
             if (guiComponents != null)
             {
-                using (Scope.ChangeCheck)
+                using (GUIScope.ChangeCheck)
                 {
                     idComponent = GUILayout.SelectionGrid(idComponent, guiComponents, 1, GUILayout.Width(200));
                     if (GUI.changed)
@@ -70,7 +70,7 @@ public partial class RuntimeEditor : MonoBehaviour
                             .ToArray();
                             */
 
-                        xpcfConfigurable = xpcfComponent.implements(configurableUUID) ? xpcfComponent.bindTo<IConfigurable>() : null;
+                        xpcfConfigurable = xpcfComponent.implements(configurableUUID) ? xpcfComponent.BindTo<IConfigurable>() : null;
                     }
                 }
             }
@@ -110,7 +110,7 @@ public partial class RuntimeEditor : MonoBehaviour
                         using (new GUILayout.HorizontalScope())
                         {
                             GUILayout.Label(p.getName(), GUILayout.Width(200));
-                            using (Scope.ChangeCheck)
+                            using (GUIScope.ChangeCheck)
                             {
                                 value = type.OnGUI(value);
                                 if (access.CanWrite() && GUI.changed)

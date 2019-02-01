@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
+using UniRx;
 using UnityEngine;
 
 #pragma warning disable IDE1006 // Styles d'affectation de noms
@@ -12,7 +13,7 @@ namespace SolAR
 {
     public abstract class AbstractSample : MonoBehaviour
     {
-        protected readonly IList<IDisposable> subscriptions = new List<IDisposable>();
+    protected readonly CompositeDisposable subscriptions = new CompositeDisposable();
 
         [HideInInspector]
         public Configuration conf;
@@ -50,22 +51,21 @@ namespace SolAR
         {
             foreach (var kvp in conf.conf.modules.ToDictionary(m => m.name, m => m.uuid))
             {
-                Extensions.modulesDict[kvp.Key] = kvp.Value;
+                ComponentExtensions.modulesDict[kvp.Key] = kvp.Value;
             }
             foreach (var kvp in conf.conf.modules.SelectMany(m => m.components).ToDictionary(c => c.name, c => c.uuid))
             {
-                Extensions.componentsDict[kvp.Key] = kvp.Value;
+                ComponentExtensions.componentsDict[kvp.Key] = kvp.Value;
             }
             var comparer = new KeyBasedEqualityComparer<ConfXml.Module.Component.Interface, string>(i => i.uuid);
             foreach (var kvp in conf.conf.modules.SelectMany(m => m.components).SelectMany(c => c.interfaces).Distinct(comparer).ToDictionary(i => i.name, i => i.uuid))
             {
-                Extensions.interfacesDict[kvp.Key] = kvp.Value;
+                ComponentExtensions.interfacesDict[kvp.Key] = kvp.Value;
             }
         }
 
         protected virtual void OnDisable()
         {
-            foreach (var d in subscriptions) d.Dispose();
             subscriptions.Clear();
         }
 

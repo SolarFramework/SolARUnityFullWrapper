@@ -11,7 +11,7 @@ public abstract class AbstractPipeline : IPipeline
 {
     protected readonly IComponentManager xpcfComponentManager;
 
-    protected readonly IList<IDisposable> subscriptions = new List<IDisposable>();
+    protected readonly CompositeDisposable subscriptions = new CompositeDisposable();
 
     readonly List<IComponentIntrospect> _xpcfComponents = new List<IComponentIntrospect>();
     public IEnumerable<IComponentIntrospect> xpcfComponents
@@ -26,20 +26,19 @@ public abstract class AbstractPipeline : IPipeline
 
     public void Dispose()
     {
-        foreach (var d in subscriptions) d.Dispose();
-        subscriptions.Clear();
+        subscriptions.Dispose();
     }
 
     protected T Create<T>(string type) where T : IComponentIntrospect, IDisposable
     {
-        var component = xpcfComponentManager.create(type).AddTo(subscriptions).bindTo<T>().AddTo(subscriptions);
+        var component = xpcfComponentManager.Create(type).AddTo(subscriptions).BindTo<T>().AddTo(subscriptions);
         _xpcfComponents.Add(component);
         return component;
     }
 
     protected T Create<T>(string type, string name) where T : IComponentIntrospect, IDisposable
     {
-        var component = xpcfComponentManager.create(type, name).AddTo(subscriptions).bindTo<T>().AddTo(subscriptions);
+        var component = xpcfComponentManager.Create(type, name).AddTo(subscriptions).BindTo<T>().AddTo(subscriptions);
         _xpcfComponents.Add(component);
         return component;
     }
