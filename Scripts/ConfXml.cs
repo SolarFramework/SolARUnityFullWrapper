@@ -76,6 +76,9 @@ namespace SolAR
                 [DefaultValue("")]
                 public string name;
 
+                [XmlIgnore]
+                public string description;
+
                 [XmlElement("property")]
                 public Property[] properties;
                 [Serializable]
@@ -88,14 +91,17 @@ namespace SolAR
                     public enum TYPE
                     {
                         String,
-                        floaT,
-                        integeR,
-                        UnsignedIntegeR,
+                        Float,
+                        Integer,
+                        UnsignedInteger,
                         Double,
                     }
                     [XmlAttribute]
                     [DefaultValue("")]
                     public string value;
+                    [XmlAttribute]
+                    [DefaultValue("")]
+                    public string description;
 
                     [XmlElement("value")]
                     public string[] values;

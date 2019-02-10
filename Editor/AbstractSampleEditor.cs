@@ -19,7 +19,7 @@ namespace SolAR
         GUIStyle windowStyle { get { return _windowStyle ?? (_windowStyle = new GUIStyle(GUI.skin.window) { richText = true, stretchHeight = false }); } }
 
         readonly AnimBool animModules = new AnimBool();
-        readonly AnimBool animConfiguration = new AnimBool(true);
+        readonly AnimBool animConfiguration = new AnimBool();
 
         protected void OnEnable()
         {

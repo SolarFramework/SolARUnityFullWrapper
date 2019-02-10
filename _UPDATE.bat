@@ -11,9 +11,9 @@ ECHO Deploy wrapper scripts
 SET SRC="..\..\..\..\SolARWrapper\out\csharp"
 SET DST="Wrapper"
 
-::RMDIR /S /Q %DST%
-::MKDIR %DST%
-::ROBOCOPY %SRC% %DST% /MIR
+RMDIR /S /Q %DST%
+MKDIR %DST%
+ROBOCOPY %SRC% %DST% /MIR
 
 :: DLL
 ECHO Deploy wrapper DLL

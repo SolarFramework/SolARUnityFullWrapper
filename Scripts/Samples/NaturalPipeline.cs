@@ -163,7 +163,7 @@ namespace SolAR.Samples
 
                 var res = homographyEstimation.find(ref2Dpoints, cam2Dpoints, Hm);
                 //test if a meaningful matrix has been obtained
-                if (res == RetCode.TRANSFORM2D_ESTIMATION_OK)
+                if (res == Api.Solver.Pose.RetCode.TRANSFORM2D_ESTIMATION_OK)
                 {
                     //poseEstimation.poseFromHomography(Hm, pose, objectCorners, sceneCorners);
                     // vector of 2D corners in camera image

@@ -1,4 +1,5 @@
 ﻿using SolAR.Datastructure;
+using SolAR.Utilities;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -18,6 +19,7 @@ namespace SolAR
         {
             Assert.IsNotNull(solARManager);
             camera = GetComponent<Camera>();
+            Assert.IsNotNull(camera);
 
             layoutId = Shader.PropertyToID("_Layout");
         }
@@ -67,11 +69,26 @@ namespace SolAR
             Debug.Log(resolution.width);
             Debug.Log(resolution.height);
             */
-            var fy = intrinsic.coeff(1, 1);
-            var fov = Mathf.Atan2(resolution.height / 2, fy) * Mathf.Rad2Deg * 2;
-            camera.fieldOfView = fov;
+            var fY = intrinsic.coeff(1, 1) * 2 / resolution.height;
+            var fX = intrinsic.coeff(0, 0) * 2 / resolution.width;
+            //var fovY = CameraUtility.Focal2Fov(fY, resolution.height);
+            //var fovX = CameraUtility.Focal2Fov(fX, resolution.width);
+            //camera.fieldOfView = fovY;
+            //CameraUtility.ApplyProjectionMatrix()
+            var projectionMatrix = Perspective(fX, fY, camera.nearClipPlane, camera.farClipPlane);
+            camera.projectionMatrix = projectionMatrix;
 
             MoveVideoPlane();
+        }
+
+        public static Matrix4x4 Perspective(float fX, float fY, float zNear, float zFar)
+        {
+            var projectionMatrix = new Matrix4x4();
+            projectionMatrix[3, 2] = -1;
+            projectionMatrix[0, 0] = fX;
+            projectionMatrix[1, 1] = fY;
+            Matrix4x4Utility.SetClipping(ref projectionMatrix, zNear, zFar);
+            return projectionMatrix;
         }
 
         void MoveVideoPlane()
