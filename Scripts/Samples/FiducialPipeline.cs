@@ -95,7 +95,7 @@ namespace SolAR.Samples
         }
 
         public override Sizef GetMarkerSize() { return binaryMarker.getSize(); }
-        public override void SetCameraParameters(Matrix3x3f intrinsics, Vector5Df distorsion)
+        public override void SetCameraParameters(Matrix3x3f intrinsics, Vector5f distorsion)
         {
             PnP.setCameraParameters(intrinsics, distorsion);
         }

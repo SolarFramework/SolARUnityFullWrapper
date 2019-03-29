@@ -48,6 +48,6 @@ public abstract class AbstractPipeline : IPipeline
     protected void LOG_DEBUG(string message, params object[] objects) { Debug.LogFormat(message, objects); }
 
     public abstract Sizef GetMarkerSize();
-    public abstract void SetCameraParameters(Matrix3x3f intrinsic, Vector5Df distorsion);
+    public abstract void SetCameraParameters(Matrix3x3f intrinsic, Vector5f distorsion);
     public abstract FrameworkReturnCode Proceed(Image inputImage, Transform3Df pose);
 }

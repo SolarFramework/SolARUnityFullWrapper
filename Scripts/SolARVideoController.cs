@@ -54,7 +54,7 @@ namespace SolAR
             Destroy(material);
         }
 
-        private void OnCalibrate(Sizei resolution, Matrix3x3f intrinsic, Vector5Df distorsion)
+        private void OnCalibrate(Sizei resolution, Matrix3x3f intrinsic, Vector5f distorsion)
         {
             /*
             var m = new Matrix4x4();

@@ -105,7 +105,7 @@ namespace SolAR.Samples
             refImgCorners.Add(corner3);
         }
 
-        public override void SetCameraParameters(Matrix3x3f intrinsics, Vector5Df distorsion)
+        public override void SetCameraParameters(Matrix3x3f intrinsics, Vector5f distorsion)
         {
             // initialize pose estimation
             poseEstimation.setCameraParameters(intrinsics, distorsion);
